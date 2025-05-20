@@ -1,0 +1,150 @@
+"use client"
+
+import {
+  LayoutDashboard,
+  Settings,
+  ShoppingBag,
+  Store,
+} from "lucide-react";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Config } from "@/app/config";
+import axios from "axios";
+import { Toaster, toast } from "sonner";
+
+
+// Menu items.
+const items = [
+  {
+    title: "Dashboard",
+    url: "/backoffice/home/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "สินค้า",
+    url: "/backoffice/home/product",
+    icon: Store,
+  },
+  {
+    title: "รายการสั่งซื้อ",
+    url: "/backoffice/home/order",
+    icon: ShoppingBag,
+  },
+  {
+    title: "ผู้ดูแลระบบ",
+    url: "/backoffice/home/admin",
+    icon: Settings,
+  },
+];
+
+export function AppSidebar() {
+  const router = useRouter()
+  const [name, setName] = useState('')
+  const [role, setRole] = useState('')
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    try {
+      const url = `${Config.apiURL}/api/admin/info`
+      const token = localStorage.getItem(Config.tokenName)
+      const hearchs = {
+        'Authorization': `Bearer ${token}`
+      }
+
+      const res = await axios.get(url, {headers: hearchs})
+
+      if (res.data.name !== undefined) {
+        setName(res.data.name)
+        setRole(res.data.role)
+      }
+      
+    } catch (error) {
+      toast.error("เกิดข้อผิดพลาด", {
+        duration: 9000, // แสดงข้อความเป็นเวลา 3 วินาที
+      })
+      console.log(error)
+    }
+  }
+
+  const handleSignOut = () => {
+    localStorage.removeItem(Config.tokenName)
+    router.push('/backoffice/signin')
+    toast.success("Sign out successfully", {
+      duration: 9000, // แสดงข้อความเป็นเวลา 3 วินาที
+    })
+
+  }
+  
+  
+  return (
+    <>
+      <Toaster position="top-right" richColors />
+      <Sidebar>
+      <SidebarHeader className="border-b pb-4">
+        <SidebarGroup>
+          <div className="flex flex-col space-y-4">
+            <SidebarGroupLabel className="text-xl font-bold text-primary">Back Office</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">W</div>
+                    <SidebarGroupLabel className="text-sm font-medium">{name}: {role}</SidebarGroupLabel>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 mt-2">
+                  <Link href="/backoffice/home/edit-profile" className="flex items-center text-sm text-muted-foreground hover:text-primary transition-colors">
+                    <i className="fa fa-user-edit mr-2"></i>
+                    แก้ไข
+                  </Link>
+
+                  <Button variant="ghost" size="sm" className="text-sm text-muted-foreground hover:text-destructive transition-colors" onClick={handleSignOut}>
+                    <i className="fa fa-sign-out mr-2"></i>
+                    ออกจากระบบ
+                  </Button>
+                </div>
+              </div>
+            </SidebarGroupContent>
+          </div>
+        </SidebarGroup>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {items.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <Link href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+    </Sidebar>
+    </>
+  );
+}
