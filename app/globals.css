@@ -126,15 +126,7 @@
   }
 }
 
-/* Admin Table */
 
-.container {
-  @apply w-full 
-  overflow-x-auto rounded-lg border border-gray-200 
-  shadow-sm
-}
 
-.admin-container {
-  @apply w-full h-full
-}
-  
+
+

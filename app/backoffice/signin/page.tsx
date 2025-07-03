@@ -58,7 +58,7 @@ export default function SignIn() {
       const result = await axios.post(url, payload);
 
       if (result.data.token != null) {
-        localStorage.setItem(Config.tokenName, result.data.token);
+        localStorage.setItem(Config.tokenAdmin, result.data.token);
         router.push('/backoffice/home/dashboard');
         toast.success("Sign in successfully", {
           duration: 9000, // แสดงข้อความเป็นเวลา 3 วินาที

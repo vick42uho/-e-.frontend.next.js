@@ -126,7 +126,7 @@ export default function EditProfile() {
     <>
       <Toaster position="top-right" richColors />
       <div className="container mx-auto py-10 px-4 max-w-3xl">
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="rounded-lg p-6 shadow-lg border border-gray-200">
           <div className="mb-6">
             <h1 className="text-2xl font-bold mb-2">แก้ไขข้อมูลส่วนตัว</h1>
             <p className="text-gray-500">แก้ไขข้อมูลส่วนตัวและรหัสผ่านของคุณ</p>
