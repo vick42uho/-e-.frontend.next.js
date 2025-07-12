@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from 'next/navigation';
 import axios from "axios";
 import { Config } from "@/app/config";
 import { ProductInterface } from "@/app/interface/ProductInterface";
@@ -47,6 +48,7 @@ import { Badge } from "@/components/ui/badge";
 import { Category } from "@/app/interface/ProductInterface";
 
 export default function ProductsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
   const initialCategory = searchParams.get("category") || "";
@@ -150,38 +152,31 @@ export default function ProductsPage() {
     return filteredProducts.slice(startIndex, endIndex);
   };
 
-  // ฟังก์ชันเพิ่มสินค้าลงตะกร้า
-  const handleAddToCart = async (product: ProductInterface) => {
-    try {
-      // เพิ่มสถานะกำลังเพิ่มลงตะกร้าสำหรับสินค้านี้
-      setAddingToCart(prev => ({ ...prev, [product.id]: true }));
-      
-      // ตรวจสอบว่าผู้ใช้เข้าสู่ระบบหรือไม่
-      const token = localStorage.getItem(Config.tokenMember);
-      if (!token) {
-        toast.error("กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้าลงตะกร้า", { duration: 3000 });
-        window.location.href = "/web/member/sign-in";
-        return;
-      }
-      
-      // ตรวจสอบให้แน่ใจว่า productId เป็น string
-      const productIdString = String(product.id);
-      console.log("ตรวจสอบ productId:", productIdString, "type:", typeof productIdString);
-      
-      // ใช้ addToCart จาก CartContext แทนการเรียก API โดยตรง
-      // addToCart จะจัดการตรวจสอบว่ามีสินค้าในตะกร้าอยู่แล้วหรือไม่ และอัพเดทจำนวนตามความเหมาะสม
-      await addToCart(productIdString, 1); // เพิ่มทีละ 1 ชิ้นในหน้ารายการสินค้า
-      
-      toast.success(`เพิ่ม ${product.name} ลงตะกร้าแล้ว`, {
-        duration: 3000,
-      });
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      toast.error("ไม่สามารถเพิ่มสินค้าลงตะกร้าได้", { duration: 3000 });
-    } finally {
-      setAddingToCart(prev => ({ ...prev, [product.id]: false }));
-    }
-  };
+// ฟังก์ชันเพิ่มสินค้าลงตะกร้าที่แก้ไขแล้ว
+const handleAddToCart = async (product: ProductInterface) => {
+  // 1. ตรวจสอบก่อนเลยว่าล็อกอินหรือยัง (Guard Clause)
+  const token = localStorage.getItem(Config.tokenMember);
+  if (!token) {
+    toast.error("กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้าลงตะกร้า", { duration: 3000 });
+    router.push("/web/member/sign-in"); // <-- ใช้ router.push
+    return; // จบการทำงานทันที
+  }
+
+  // 2. ถ้าล็อกอินแล้ว ถึงจะเข้ากระบวนการหลัก
+  try {
+    setAddingToCart(prev => ({ ...prev, [product.id]: true }));
+    const productIdString = String(product.id);
+    await addToCart(productIdString, 1);
+    toast.success(`เพิ่ม ${product.name} ลงตะกร้าแล้ว`, {
+      duration: 3000,
+    });
+  } catch (error) {
+    console.error("Error adding to cart:", error);
+    toast.error("ไม่สามารถเพิ่มสินค้าลงตะกร้าได้", { duration: 3000 });
+  } finally {
+    setAddingToCart(prev => ({ ...prev, [product.id]: false }));
+  }
+};
 
   // ฟังก์ชันเปลี่ยนหน้า
   const handlePageChange = (page: number) => {

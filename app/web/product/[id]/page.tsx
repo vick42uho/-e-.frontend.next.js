@@ -342,9 +342,9 @@ export default function ProductDetailPage() {
                   </>
                 )}
               </Button>
-              <Button variant="outline" size="lg" className="border-gray-300">
+              {/* <Button variant="outline" size="lg" className="border-gray-300">
                 <Heart className="h-5 w-5" />
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>

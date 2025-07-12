@@ -28,6 +28,13 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import { ZoomDialog } from "@/components/ui/ZoomDialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const OrderPage = () => {
   const [zoomOpen, setZoomOpen] = useState(false);
@@ -36,6 +43,16 @@ const OrderPage = () => {
     null
   );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Filter states
+  const [filteredOrders, setFilteredOrders] = useState<OrderInterface[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage] = useState(12);
 
   // Form states
   const [trackCode, setTrackCode] = useState("");
@@ -47,6 +64,33 @@ const OrderPage = () => {
     fetchData();
   }, []);
 
+  // --- เพิ่ม useEffect นี้เข้าไป ---
+  useEffect(() => {
+    // เริ่มต้นด้วยข้อมูลทั้งหมดจาก State `orders`
+    let result = orders;
+
+    // 1. กรองด้วยคำค้นหา (searchQuery)
+    if (searchQuery) {
+      const lowercasedQuery = searchQuery.toLowerCase();
+      result = result.filter(
+        (order) =>
+          order.customerName.toLowerCase().includes(lowercasedQuery) ||
+          order.customerPhone.includes(lowercasedQuery) ||
+          order.orderNo.toLowerCase().includes(lowercasedQuery) ||
+          order.id.toLowerCase().includes(lowercasedQuery) // ค้นหาจาก Order ID ด้วย
+      );
+    }
+
+    // 2. กรองด้วยสถานะ (selectedStatus)
+    if (selectedStatus && selectedStatus !== "all") {
+      result = result.filter((order) => order.status === selectedStatus);
+    }
+
+    // 3. นำผลลัพธ์สุดท้ายไปเก็บใน state `filteredOrders` เพื่อแสดงผล
+    setFilteredOrders(result);
+  }, [orders, searchQuery, selectedStatus]); // useEffect นี้จะทำงานทุกครั้งที่ค่าในวงเล็บนี้เปลี่ยนไป
+  // --- สิ้นสุดส่วนที่เพิ่ม ---
+
   const fetchData = async () => {
     try {
       const { data } = await axios.get(`${Config.apiURL}/api/order/list`, {
@@ -55,6 +99,7 @@ const OrderPage = () => {
         },
       });
       setOrders(data);
+      setTotalPages(Math.ceil(data.length / itemsPerPage));
     } catch (error) {
       toast.error("เกิดข้อผิดพลาดในการดึงข้อมูลรายการสั่งซื้อ");
     }
@@ -166,12 +211,65 @@ const OrderPage = () => {
     }
   };
 
+  const statusLabels: { [key: string]: string } = {
+    "all": "ทั้งหมด",
+    pending: "รอชำระเงิน",
+    paid: "ได้รับเงินแล้ว",
+    send: "จัดส่งแล้ว",
+    completed: "สำเร็จ",
+    cancel: "ยกเลิก",
+  };
+
   return (
     <div className="h-full w-full flex flex-col p-4 md:p-6">
       <Toaster position="top-right" richColors />
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold">รายการสั่งซื้อ</h1>
+      <div className="mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+          <h1 className="text-2xl font-bold">รายการสั่งซื้อ</h1>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // <-- เพิ่ม onClick
+                setSearchQuery("");
+                setSelectedStatus("");
+              }}
+            >
+              ล้างการค้นหา
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="space-y-2">
+            <Label htmlFor="search">ค้นหา</Label>
+            <Input
+              id="search"
+              placeholder="ค้นหาชื่อ, เบอร์โทร, หรือเลขคำสั่งซื้อ"
+              value={searchQuery} // <-- เพิ่ม value
+              onChange={(e) => setSearchQuery(e.target.value)} // <-- เพิ่ม onChange
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="status">สถานะ</Label>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger id="status">
+                <SelectValue placeholder="เลือกสถานะ" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(statusLabels).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
+
       <div className="flex-1 w-full overflow-auto border rounded-lg">
         <Table>
           <TableHeader>
@@ -185,7 +283,7 @@ const OrderPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <TableRow key={order.id}>
                 <TableCell>
                   {new Date(order.createdAt).toLocaleDateString("th-TH")}
@@ -216,7 +314,7 @@ const OrderPage = () => {
           <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>
-                รายละเอียดคำสั่งซื้อ #{selectedOrder.id.substring(0, 8)}
+                หมายเลขคำสั่งซื้อ #{selectedOrder.orderNo}
               </DialogTitle>
             </DialogHeader>
             <form className="grid gap-6 py-4">
